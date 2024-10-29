@@ -33,6 +33,7 @@ from sentry.models.orgauthtoken import (
 )
 from sentry.models.projectkey import ProjectKey
 from sentry.models.relay import Relay
+from sentry.organizations.services.organization import RpcOrganization, organization_service
 from sentry.relay.utils import get_header_relay_id, get_header_relay_signature
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.silo.base import SiloLimit, SiloMode
@@ -153,6 +154,9 @@ class QuietBasicAuthentication(BasicAuthentication):
         user: int | User | RpcUser | None | AnonymousUser,
         request_auth: Any,
         entity_id_tag: str | None = None,
+        organization: (
+            RpcOrganization | None
+        ) = None,  # It only has value when we want to limit the scope of user access to one organization only
         **tags,
     ) -> tuple[RpcUser | AnonymousUser, AuthenticatedToken | None]:
         if isinstance(user, int):
@@ -169,6 +173,8 @@ class QuietBasicAuthentication(BasicAuthentication):
             for k, v in tags.items():
                 scope.set_tag(k, v)
 
+        if organization:
+            return (user, auth_token, organization)
         return (user, auth_token)
 
 
@@ -178,10 +184,14 @@ class StandardAuthentication(QuietBasicAuthentication):
     def accepts_auth(self, auth: list[bytes]) -> bool:
         return bool(auth) and auth[0].lower() == self.token_name
 
-    def authenticate_token(self, request: Request, token_str: str) -> tuple[Any, Any]:
+    def authenticate_token(
+        self,
+        request: Request,
+        token_str: str,
+    ) -> tuple[Any, Any]:
         raise NotImplementedError
 
-    def authenticate(self, request: Request):
+    def authenticate(self, request: Request, include_organization: bool | None = False):
         auth = get_authorization_header(request).split()
 
         if not self.accepts_auth(auth):
@@ -194,7 +204,9 @@ class StandardAuthentication(QuietBasicAuthentication):
             msg = "Invalid token header. Token string should not contain spaces."
             raise AuthenticationFailed(msg)
 
-        return self.authenticate_token(request, force_str(auth[1]))
+        return self.authenticate_token(
+            request, force_str(auth[1]), include_organization=include_organization
+        )
 
 
 @AuthenticationSiloLimit(SiloMode.REGION)
@@ -382,7 +394,9 @@ class UserAuthTokenAuthentication(StandardAuthentication):
         token_str = force_str(auth[1])
         return not token_str.startswith(SENTRY_ORG_AUTH_TOKEN_PREFIX)
 
-    def authenticate_token(self, request: Request, token_str: str) -> tuple[Any, Any]:
+    def authenticate_token(
+        self, request: Request, token_str: str, include_organization: bool | None = False
+    ) -> tuple[Any, Any]:
         user: AnonymousUser | User | RpcUser | None = AnonymousUser()
 
         token: SystemToken | ApiTokenReplica | ApiToken | None = SystemToken.from_request(
@@ -417,12 +431,25 @@ class UserAuthTokenAuthentication(StandardAuthentication):
         if application_is_inactive:
             raise AuthenticationFailed("UserApplication inactive or deleted")
 
+        organization = None
+        if token.organization_id and include_organization:
+            # resolved_url = resolve(request.path_info)
+            # if resolved_url:
+            # TODO @Athena: fetch organization from resolved_url.kwargs
+            # raise AuthenticationFailed("No access to organization") if they're not equal
+            organization_context = organization_service.get_organization_by_id(
+                id=token.organization_id
+            )
+            if organization_context:
+                organization = organization_context.organization
+
         return self.transform_auth(
             user,
             token,
             "api_token",
             api_token_type=self.token_name,
             api_token_is_sentry_app=getattr(user, "is_sentry_app", False),
+            organization=organization,
         )
 
 

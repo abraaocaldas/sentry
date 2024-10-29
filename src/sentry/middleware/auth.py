@@ -69,11 +69,11 @@ class AuthenticationMiddleware(MiddlewareMixin):
                 if not authenticator.accepts_auth(auth):
                     continue
                 try:
-                    result = authenticator.authenticate(request)
+                    result = authenticator.authenticate(request, include_organization=True)
                 except AuthenticationFailed:
                     result = None
                 if result:
-                    request.user, request.auth = result
+                    request.user, request.auth, request.organization = result
                 else:
                     # default to anonymous user and use IP ratelimit
                     request.user = SimpleLazyObject(lambda: get_user(request))
