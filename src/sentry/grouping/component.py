@@ -37,13 +37,13 @@ class GroupingComponent:
 
     def __init__(
         self,
-        id: str,
+        id: str | None = None,
         hint: str | None = None,
         contributes: bool | None = None,
         values: Sequence[str | GroupingComponent] | None = None,
         variant_provider: bool = False,
     ):
-        self.id = id
+        self.id = id or self.id
 
         # Default values
         self.hint = DEFAULT_HINTS.get(id)
