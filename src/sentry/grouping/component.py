@@ -177,3 +177,13 @@ class GroupingComponent:
 class MessageGroupingComponent(GroupingComponent):
     id: str = "message"
     values: list[str]
+
+
+class ExceptionGroupingComponent(GroupingComponent):
+    id: str = "exception"
+    values: list[GroupingComponent]
+
+
+class ChainedExceptionGroupingComponent(GroupingComponent):
+    id: str = "chained-exception"
+    values: list[ExceptionGroupingComponent]

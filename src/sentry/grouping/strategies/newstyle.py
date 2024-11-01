@@ -7,7 +7,11 @@ from collections.abc import Generator
 from typing import Any
 
 from sentry.eventstore.models import Event
-from sentry.grouping.component import GroupingComponent
+from sentry.grouping.component import (
+    ChainedExceptionGroupingComponent,
+    ExceptionGroupingComponent,
+    GroupingComponent,
+)
 from sentry.grouping.strategies.base import (
     GroupingContext,
     ReturnedVariants,
@@ -600,7 +604,7 @@ def single_exception(
 
             values.append(value_component)
 
-        rv[variant] = GroupingComponent(id="exception", values=values)
+        rv[variant] = ExceptionGroupingComponent(values=values)
 
     return rv
 
@@ -641,7 +645,7 @@ def chained_exception(
         return exception_components[id(exceptions[0])]
 
     # Case 2: produce a component for each chained exception
-    by_name: dict[str, list[GroupingComponent]] = {}
+    by_name: dict[str, list[ExceptionGroupingComponent]] = {}
 
     for exception in exceptions:
         for name, component in exception_components[id(exception)].items():
@@ -650,10 +654,7 @@ def chained_exception(
     rv = {}
 
     for name, component_list in by_name.items():
-        rv[name] = GroupingComponent(
-            id="chained-exception",
-            values=component_list,
-        )
+        rv[name] = ChainedExceptionGroupingComponent(values=component_list)
 
     return rv
 

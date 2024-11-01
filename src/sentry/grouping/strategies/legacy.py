@@ -3,7 +3,11 @@ import re
 from typing import Any
 
 from sentry.eventstore.models import Event
-from sentry.grouping.component import GroupingComponent
+from sentry.grouping.component import (
+    ChainedExceptionGroupingComponent,
+    ExceptionGroupingComponent,
+    GroupingComponent,
+)
 from sentry.grouping.strategies.base import (
     GroupingContext,
     ReturnedVariants,
@@ -195,8 +199,8 @@ def single_exception_legacy(
             value_component.update(contributes=True)
 
     return {
-        context["variant"]: GroupingComponent(
-            id="exception", values=[stacktrace_component, type_component, value_component]
+        context["variant"]: ExceptionGroupingComponent(
+            values=[stacktrace_component, type_component, value_component]
         )
     }
 
@@ -231,7 +235,7 @@ def chained_exception_legacy(
             if stacktrace_component is None or not stacktrace_component.contributes:
                 value.update(contributes=False, hint="exception has no stacktrace")
 
-    return {context["variant"]: GroupingComponent(id="chained-exception", values=values)}
+    return {context["variant"]: ChainedExceptionGroupingComponent(values=values)}
 
 
 @chained_exception_legacy.variant_processor
