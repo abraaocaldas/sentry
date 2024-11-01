@@ -24,7 +24,9 @@ ContextDict = dict[str, ContextValue]
 DEFAULT_GROUPING_ENHANCEMENTS_BASE = "common:2019-03-23"
 DEFAULT_GROUPING_FINGERPRINTING_BASES: list[str] = []
 
-ReturnedVariants = dict[str, GroupingComponent]
+# Use a generic as a hack to force the dictionary to be covariant
+GroupingComponentOrSubclass = TypeVar("GroupingComponentOrSubclass", bound=GroupingComponent)
+ReturnedVariants = dict[str, GroupingComponentOrSubclass]
 ConcreteInterface = TypeVar("ConcreteInterface", bound=Interface, contravariant=True)
 
 
