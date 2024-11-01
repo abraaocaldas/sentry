@@ -7,6 +7,7 @@ from sentry.grouping.component import (
     ChainedExceptionGroupingComponent,
     ExceptionGroupingComponent,
     GroupingComponent,
+    ThreadsGroupingComponent,
 )
 from sentry.grouping.strategies.base import (
     GroupingContext,
@@ -465,8 +466,7 @@ def threads_legacy(
     thread_count = len(interface.values)
     if thread_count != 1:
         return {
-            context["variant"]: GroupingComponent(
-                id="threads",
+            context["variant"]: ThreadsGroupingComponent(
                 contributes=False,
                 hint="ignored because contains %d threads" % thread_count,
             )
@@ -475,14 +475,13 @@ def threads_legacy(
     stacktrace = interface.values[0].get("stacktrace")
     if not stacktrace:
         return {
-            context["variant"]: GroupingComponent(
-                id="threads", contributes=False, hint="thread has no stacktrace"
+            context["variant"]: ThreadsGroupingComponent(
+                contributes=False, hint="thread has no stacktrace"
             )
         }
 
     return {
-        context["variant"]: GroupingComponent(
-            id="threads",
+        context["variant"]: ThreadsGroupingComponent(
             values=[context.get_single_grouping_component(stacktrace, event=event, **meta)],
         )
     }

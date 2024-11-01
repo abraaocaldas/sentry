@@ -11,6 +11,7 @@ from sentry.grouping.component import (
     ChainedExceptionGroupingComponent,
     ExceptionGroupingComponent,
     GroupingComponent,
+    ThreadsGroupingComponent,
 )
 from sentry.grouping.strategies.base import (
     GroupingContext,
@@ -791,8 +792,7 @@ def threads(
         return thread_variants
 
     return {
-        "app": GroupingComponent(
-            id="threads",
+        "app": ThreadsGroupingComponent(
             contributes=False,
             hint=(
                 "ignored because does not contain exactly one crashing, "
@@ -811,18 +811,14 @@ def _filtered_threads(
 
     stacktrace = threads[0].get("stacktrace")
     if not stacktrace:
-        return {
-            "app": GroupingComponent(
-                id="threads", contributes=False, hint="thread has no stacktrace"
-            )
-        }
+        return {"app": ThreadsGroupingComponent(contributes=False, hint="thread has no stacktrace")}
 
     rv = {}
 
     for name, stacktrace_component in context.get_grouping_component(
         stacktrace, event=event, **meta
     ).items():
-        rv[name] = GroupingComponent(id="threads", values=[stacktrace_component])
+        rv[name] = ThreadsGroupingComponent(values=[stacktrace_component])
 
     return rv
 

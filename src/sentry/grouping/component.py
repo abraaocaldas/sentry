@@ -187,3 +187,8 @@ class ExceptionGroupingComponent(GroupingComponent):
 class ChainedExceptionGroupingComponent(GroupingComponent):
     id: str = "chained-exception"
     values: list[ExceptionGroupingComponent]
+
+
+class ThreadsGroupingComponent(GroupingComponent):
+    id: str = "threads"
+    values: list[GroupingComponent]
