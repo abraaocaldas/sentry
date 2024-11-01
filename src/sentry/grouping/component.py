@@ -174,9 +174,16 @@ class GroupingComponent:
         return f"GroupingComponent({self.id!r}, hint={self.hint!r}, contributes={self.contributes!r}, values={self.values!r})"
 
 
-class MessageGroupingComponent(GroupingComponent):
+class ValueGroupingComponent(GroupingComponent):
+    """
+    A component whose `values` is a list of a single actual value rather than other grouping components.
+    """
+
+    values: list[str | int]
+
+
+class MessageGroupingComponent(ValueGroupingComponent):
     id: str = "message"
-    values: list[str]
 
 
 class ExceptionGroupingComponent(GroupingComponent):

@@ -8,6 +8,7 @@ from sentry.grouping.component import (
     ExceptionGroupingComponent,
     GroupingComponent,
     ThreadsGroupingComponent,
+    ValueGroupingComponent,
 )
 from sentry.grouping.strategies.base import (
     GroupingContext,
@@ -169,12 +170,12 @@ def single_exception_legacy(
     interface: SingleException, event: Event, context: GroupingContext, **meta: Any
 ) -> ReturnedVariants:
 
-    type_component = GroupingComponent(
+    type_component = ValueGroupingComponent(
         id="type",
         values=[interface.type] if interface.type else [],
         contributes=False,
     )
-    value_component = GroupingComponent(
+    value_component = ValueGroupingComponent(
         id="value",
         values=[interface.value] if interface.value else [],
         contributes=False,
@@ -267,7 +268,7 @@ def frame_legacy(
     # Safari throws [native code] frames in for calls like ``forEach``
     # whereas Chrome ignores these. Let's remove it from the hashing algo
     # so that they're more likely to group together
-    filename_component = GroupingComponent(id="filename")
+    filename_component = ValueGroupingComponent(id="filename")
     if interface.filename == "<anonymous>":
         filename_component.update(
             contributes=False, values=[interface.filename], hint="anonymous filename discarded"
@@ -298,7 +299,7 @@ def frame_legacy(
     # if we have a module we use that for grouping.  This will always
     # take precedence over the filename, even if the module is
     # considered unhashable.
-    module_component = GroupingComponent(id="module")
+    module_component = ValueGroupingComponent(id="module")
     if interface.module:
         if is_unhashable_module_legacy(interface, platform):
             module_component.update(
@@ -318,7 +319,7 @@ def frame_legacy(
             )
 
     # Context line when available is the primary contributor
-    context_line_component = GroupingComponent(id="context-line")
+    context_line_component = ValueGroupingComponent(id="context-line")
     if interface.context_line is not None:
         if len(interface.context_line) > 120:
             context_line_component.update(hint="discarded because line too long")
@@ -327,9 +328,9 @@ def frame_legacy(
         else:
             context_line_component.update(values=[interface.context_line])
 
-    symbol_component = GroupingComponent(id="symbol")
-    function_component = GroupingComponent(id="function")
-    lineno_component = GroupingComponent(id="lineno")
+    symbol_component = ValueGroupingComponent(id="symbol")
+    function_component = ValueGroupingComponent(id="function")
+    lineno_component = ValueGroupingComponent(id="lineno")
 
     # The context line grouping information is the most reliable one.
     # If we did not manage to find some information there, we want to

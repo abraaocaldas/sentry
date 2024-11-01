@@ -12,6 +12,7 @@ from sentry.grouping.component import (
     ExceptionGroupingComponent,
     GroupingComponent,
     ThreadsGroupingComponent,
+    ValueGroupingComponent,
 )
 from sentry.grouping.strategies.base import (
     GroupingContext,
@@ -126,12 +127,12 @@ def get_filename_component(
     using the basename only.
     """
     if filename is None:
-        return GroupingComponent(id="filename")
+        return ValueGroupingComponent(id="filename")
 
     # Only use the platform independent basename for grouping and
     # lowercase it
     filename = _basename_re.split(filename)[-1].lower()
-    filename_component = GroupingComponent(
+    filename_component = ValueGroupingComponent(
         id="filename",
         values=[filename],
     )
@@ -161,9 +162,9 @@ def get_module_component(
     with some necessary cleaning performed.
     """
     if module is None:
-        return GroupingComponent(id="module")
+        return ValueGroupingComponent(id="module")
 
-    module_component = GroupingComponent(
+    module_component = ValueGroupingComponent(
         id="module",
         values=[module],
     )
@@ -242,7 +243,7 @@ def get_function_component(
             func = trim_function_name(func, platform)
 
     if not func:
-        return GroupingComponent(id="function")
+        return ValueGroupingComponent(id="function")
 
     function_component = GroupingComponent(
         id="function",
@@ -394,9 +395,9 @@ def get_contextline_component(
     """
     line = " ".join((frame.context_line or "").expandtabs(2).split())
     if not line:
-        return GroupingComponent(id="context-line")
+        return ValueGroupingComponent(id="context-line")
 
-    component = GroupingComponent(
+    component = ValueGroupingComponent(
         id="context-line",
         values=[line],
     )
@@ -516,7 +517,7 @@ def stacktrace_variant_processor(
 def single_exception(
     interface: SingleException, event: Event, context: GroupingContext, **meta: Any
 ) -> ReturnedVariants:
-    type_component = GroupingComponent(
+    type_component = ValueGroupingComponent(
         id="type",
         values=[interface.type] if interface.type else [],
     )
@@ -540,7 +541,7 @@ def single_exception(
                 contributes=False, hint="ignored because exception is synthetic"
             )
         if interface.mechanism.meta and "ns_error" in interface.mechanism.meta:
-            ns_error_component = GroupingComponent(
+            ns_error_component = ValueGroupingComponent(
                 id="ns-error",
                 values=[
                     interface.mechanism.meta["ns_error"].get("domain"),
@@ -571,7 +572,7 @@ def single_exception(
             values.append(ns_error_component)
 
         if context["with_exception_value_fallback"]:
-            value_component = GroupingComponent(
+            value_component = ValueGroupingComponent(
                 id="value",
             )
 

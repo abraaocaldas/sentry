@@ -1,7 +1,7 @@
 from typing import Any
 
 from sentry.eventstore.models import Event
-from sentry.grouping.component import GroupingComponent
+from sentry.grouping.component import GroupingComponent, ValueGroupingComponent
 from sentry.grouping.strategies.base import (
     GroupingContext,
     ReturnedVariants,
@@ -52,8 +52,8 @@ def hpkp_v1(
 @strategy(ids=["csp:v1"], interface=Csp, score=1003)
 @produces_variants(["default"])
 def csp_v1(interface: Csp, event: Event, context: GroupingContext, **meta: Any) -> ReturnedVariants:
-    violation_component = GroupingComponent(id="violation")
-    uri_component = GroupingComponent(id="uri")
+    violation_component = ValueGroupingComponent(id="violation")
+    uri_component = ValueGroupingComponent(id="uri")
 
     if interface.local_script_violation_type:
         violation_component.update(values=["'%s'" % interface.local_script_violation_type])
