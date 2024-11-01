@@ -5,6 +5,7 @@ import random
 class EventStageStatus(Enum):
     START = "start"
     END = "end"
+    REDIS_PUT = "redis_put"
     """
     i plan on adding the below enums for every step of the transactions pipeline
     ingest_consumer_published

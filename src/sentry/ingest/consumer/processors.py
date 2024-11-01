@@ -3,6 +3,7 @@ import logging
 import os
 from collections.abc import Mapping, MutableMapping
 from typing import Any
+from sentry.utils.event_tracker import EventTracker, EventStageStatus
 
 import orjson
 import sentry_sdk
@@ -202,6 +203,8 @@ def process_event(
         else:
             with metrics.timer("ingest_consumer._store_event"):
                 cache_key = processing_store.store(data)
+            tracker = EventTracker()
+            tracker.record_event_stage_status(event_id=data["event_id"], status=EventStageStatus.REDIS_PUT)
             save_attachments(attachments, cache_key)
 
         try:
