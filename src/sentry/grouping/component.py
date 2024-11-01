@@ -212,3 +212,13 @@ class SecurityGroupingComponent(GroupingComponent):
 class TemplateGroupingComponent(GroupingComponent):
     id: str = "template"
     values: list[ValueGroupingComponent]
+
+
+class StacktraceGroupingComponent(GroupingComponent):
+    id: str = "stacktrace"
+    values: list[FrameGroupingComponent]
+
+
+class FrameGroupingComponent(GroupingComponent):
+    id: str = "frame"
+    values: list[GroupingComponent]

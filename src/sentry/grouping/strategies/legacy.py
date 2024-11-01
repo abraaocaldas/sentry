@@ -6,8 +6,9 @@ from sentry.eventstore.models import Event
 from sentry.grouping.component import (
     ChainedExceptionGroupingComponent,
     ExceptionGroupingComponent,
-    GroupingComponent,
+    FrameGroupingComponent,
     SaltGroupingComponent,
+    StacktraceGroupingComponent,
     ThreadsGroupingComponent,
     ValueGroupingComponent,
 )
@@ -181,7 +182,7 @@ def single_exception_legacy(
         values=[interface.value] if interface.value else [],
         contributes=False,
     )
-    stacktrace_component = GroupingComponent(id="stacktrace")
+    stacktrace_component = StacktraceGroupingComponent()
 
     if interface.stacktrace is not None:
         stacktrace_component = context.get_single_grouping_component(
@@ -387,8 +388,7 @@ def frame_legacy(
             )
 
     return {
-        context["variant"]: GroupingComponent(
-            id="frame",
+        context["variant"]: FrameGroupingComponent(
             values=[
                 module_component,
                 filename_component,

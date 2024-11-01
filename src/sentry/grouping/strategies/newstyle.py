@@ -10,7 +10,9 @@ from sentry.eventstore.models import Event
 from sentry.grouping.component import (
     ChainedExceptionGroupingComponent,
     ExceptionGroupingComponent,
+    FrameGroupingComponent,
     GroupingComponent,
+    StacktraceGroupingComponent,
     ThreadsGroupingComponent,
     ValueGroupingComponent,
 )
@@ -351,7 +353,7 @@ def frame(
     if context_line_component is not None:
         values.append(context_line_component)
 
-    rv = GroupingComponent(id="frame", values=values)
+    rv = FrameGroupingComponent(values=values)
 
     # if we are in javascript fuzzing mode we want to disregard some
     # frames consistently.  These force common bad stacktraces together
@@ -557,7 +559,7 @@ def single_exception(
             )
     else:
         stacktrace_variants = {
-            "app": GroupingComponent(id="stacktrace"),
+            "app": StacktraceGroupingComponent(),
         }
 
     rv = {}
