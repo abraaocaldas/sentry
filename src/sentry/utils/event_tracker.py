@@ -1,6 +1,6 @@
-from abc import ABC, abstractmethod
 from enum import Enum
 import logging
+import random
 
 class EventStageStatus(Enum):
     START = "start"
@@ -26,29 +26,23 @@ class EventStageStatus(Enum):
     post_process_finished / the same as redis_deleted
     """
 
-class EventTrackerBackend(ABC):
-    """
-    Abstract base class for event lineage tracking within a pipeline component.
-    """
-    @abstractmethod
-    def record_processing_phase(self, event_id: str, status: EventStageStatus):
-        """
-        Records how far an event has made it through the ingestion pipeline.
-
-        Args:
-            event_id (str): Unique identifier of the event.
-            status (ProcessingPhase): The status of each step of the data lineage, either START or END.
-        """
-        raise NotImplementedError
-
-class EventTracker(EventTrackerBackend):
+class EventTracker:
     """
     Logger-based implementation of EventTrackerBackend. The data will be saved in BigQuery using Google Log Sink
     """
-    def __init__(self):
+    def __init__(self, sample_rate: float = 0.01):
+        """
+        Args:
+            sample_rate (float): The probability (0.0 to 1.0) that an event is recorded.
+                                 A value of 1.0 records all events, 0.1 records approximately 10% of events.
+        """
         self.logger = logging.getLogger("EventTracker")
-        logging.basicConfig(level=logging.INFO)
+        self.sample_rate = sample_rate
 
     def record_event_stage_status(self, event_id: str, status: EventStageStatus):
-        details = details or {}
+        if random.random() > self.sample_rate:
+            return
+        """
+        Records how far an event has made it through the ingestion pipeline.
+        """
         self.logger.info(f"EventTracker recorded event {event_id} - {status.value}")
