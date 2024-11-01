@@ -1,7 +1,7 @@
 from typing import Any
 
 from sentry.eventstore.models import Event
-from sentry.grouping.component import GroupingComponent, ValueGroupingComponent
+from sentry.grouping.component import TemplateGroupingComponent, ValueGroupingComponent
 from sentry.grouping.strategies.base import (
     GroupingContext,
     ReturnedVariants,
@@ -25,7 +25,7 @@ def template_v1(
         context_line_component.update(values=[interface.context_line])
 
     return {
-        context["variant"]: GroupingComponent(
-            id="template", values=[filename_component, context_line_component]
+        context["variant"]: TemplateGroupingComponent(
+            values=[filename_component, context_line_component]
         )
     }

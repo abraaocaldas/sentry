@@ -207,3 +207,8 @@ class SaltGroupingComponent(GroupingComponent):
 
 class SecurityGroupingComponent(GroupingComponent):
     values: list[ValueGroupingComponent]
+
+
+class TemplateGroupingComponent(GroupingComponent):
+    id: str = "template"
+    values: list[ValueGroupingComponent]
