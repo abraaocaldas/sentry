@@ -172,3 +172,8 @@ class GroupingComponent:
 
     def __repr__(self) -> str:
         return f"GroupingComponent({self.id!r}, hint={self.hint!r}, contributes={self.contributes!r}, values={self.values!r})"
+
+
+class MessageGroupingComponent(GroupingComponent):
+    id: str = "message"
+    values: list[str]
