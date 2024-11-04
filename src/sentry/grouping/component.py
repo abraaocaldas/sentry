@@ -203,3 +203,7 @@ class SaltGroupingComponent(GroupingComponent):
     id: str = "salt"
     hint: str = "a static salt"
     values: list[str]
+
+
+class SecurityGroupingComponent(GroupingComponent):
+    values: list[ValueGroupingComponent]
