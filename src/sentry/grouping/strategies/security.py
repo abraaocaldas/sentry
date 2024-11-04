@@ -1,7 +1,11 @@
 from typing import Any
 
 from sentry.eventstore.models import Event
-from sentry.grouping.component import GroupingComponent, ValueGroupingComponent
+from sentry.grouping.component import (
+    GroupingComponent,
+    SaltGroupingComponent,
+    ValueGroupingComponent,
+)
 from sentry.grouping.strategies.base import (
     GroupingContext,
     ReturnedVariants,
@@ -18,8 +22,8 @@ def _security_v1(
         context["variant"]: GroupingComponent(
             id=reported_id,
             values=[
-                GroupingComponent(id="salt", values=[reported_id]),
-                GroupingComponent(id="hostname", values=[obj.hostname]),
+                SaltGroupingComponent(values=[reported_id]),
+                ValueGroupingComponent(id="hostname", values=[obj.hostname]),
             ],
         )
     }
@@ -70,7 +74,7 @@ def csp_v1(interface: Csp, event: Event, context: GroupingContext, **meta: Any) 
         context["variant"]: GroupingComponent(
             id="csp",
             values=[
-                GroupingComponent(id="salt", values=[interface.effective_directive]),
+                SaltGroupingComponent(values=[interface.effective_directive]),
                 violation_component,
                 uri_component,
             ],

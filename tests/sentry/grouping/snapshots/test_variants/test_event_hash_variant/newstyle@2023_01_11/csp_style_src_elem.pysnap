@@ -1,4 +1,6 @@
 ---
+created: '2024-11-04T20:02:33.187309+00:00'
+creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 default:
@@ -6,7 +8,7 @@ default:
   component:
     default*
       csp*
-        salt* (a static salt)
+        salt*
           "style-src-elem"
         violation (not a local script violation)
         uri*

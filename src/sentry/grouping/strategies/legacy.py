@@ -7,6 +7,7 @@ from sentry.grouping.component import (
     ChainedExceptionGroupingComponent,
     ExceptionGroupingComponent,
     GroupingComponent,
+    SaltGroupingComponent,
     ThreadsGroupingComponent,
     ValueGroupingComponent,
 )
@@ -304,8 +305,8 @@ def frame_legacy(
         if is_unhashable_module_legacy(interface, platform):
             module_component.update(
                 values=[
-                    GroupingComponent(
-                        id="salt", values=["<module>"], hint="normalized generated module name"
+                    SaltGroupingComponent(
+                        values=["<module>"], hint="normalized generated module name"
                     )
                 ],
                 hint="ignored module",
@@ -353,8 +354,8 @@ def frame_legacy(
             if is_unhashable_function_legacy(func):
                 function_component.update(
                     values=[
-                        GroupingComponent(
-                            id="salt", values=["<function>"], hint="normalized lambda function name"
+                        SaltGroupingComponent(
+                            values=["<function>"], hint="normalized lambda function name"
                         )
                     ]
                 )

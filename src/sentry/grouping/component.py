@@ -5,8 +5,6 @@ from typing import Any
 
 from sentry.grouping.utils import hash_from_values
 
-DEFAULT_HINTS = {"salt": "a static salt"}
-
 # When a component ID appears here it has a human readable name which also
 # makes it a major component.  A major component is described as such for
 # the UI.
@@ -52,7 +50,7 @@ class GroupingComponent:
         self.id = id or self.id
 
         # Default values
-        self.hint = DEFAULT_HINTS.get(id)
+        self.hint = hint
         self.contributes = contributes
         self.variant_provider = variant_provider
         self.values: Sequence[str | GroupingComponent] = []
@@ -199,3 +197,9 @@ class ChainedExceptionGroupingComponent(GroupingComponent):
 class ThreadsGroupingComponent(GroupingComponent):
     id: str = "threads"
     values: list[GroupingComponent]
+
+
+class SaltGroupingComponent(GroupingComponent):
+    id: str = "salt"
+    hint: str = "a static salt"
+    values: list[str]

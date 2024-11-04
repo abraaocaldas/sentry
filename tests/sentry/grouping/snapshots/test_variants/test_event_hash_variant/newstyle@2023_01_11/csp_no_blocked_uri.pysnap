@@ -1,5 +1,5 @@
 ---
-created: '2023-01-11T11:41:27.883979Z'
+created: '2024-11-04T20:02:32.923500+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -8,7 +8,7 @@ default:
   component:
     default*
       csp*
-        salt* (a static salt)
+        salt*
           "script-src"
         violation (not a local script violation)
         uri*
