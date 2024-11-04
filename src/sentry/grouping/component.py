@@ -23,7 +23,7 @@ KNOWN_MAJOR_COMPONENT_NAMES = {
 }
 
 
-def _calculate_contributes(values: Sequence[str | GroupingComponent]) -> bool:
+def _calculate_contributes(values: Sequence[str | int | GroupingComponent]) -> bool:
     for value in values or ():
         if not isinstance(value, GroupingComponent) or value.contributes:
             return True
@@ -46,7 +46,7 @@ class GroupingComponent:
         id: str | None = None,
         hint: str | None = None,
         contributes: bool | None = None,
-        values: Sequence[str | GroupingComponent] | None = None,
+        values: Sequence[str | int | GroupingComponent] | None = None,
         variant_provider: bool = False,
     ):
         self.id = id or self.id
@@ -114,7 +114,7 @@ class GroupingComponent:
         self,
         hint: str | None = None,
         contributes: bool | None = None,
-        values: Sequence[str | GroupingComponent] | None = None,
+        values: Sequence[str | int | GroupingComponent] | None = None,
     ) -> None:
         """Updates an already existing component with new values."""
         if hint is not None:
@@ -133,7 +133,7 @@ class GroupingComponent:
         rv.values = list(self.values)
         return rv
 
-    def iter_values(self) -> Generator[str | GroupingComponent]:
+    def iter_values(self) -> Generator[str | int | GroupingComponent]:
         """Recursively walks the component and flattens it into a list of
         values.
         """
