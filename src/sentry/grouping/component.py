@@ -35,6 +35,12 @@ class GroupingComponent:
     into components to make a hash for grouping purposes.
     """
 
+    id: str
+    hint: str | None
+    # TODO: `contributes` does sometimes come out as None, but that's a bug. Once we fix that, update this type.
+    contributes: bool | None
+    values: Sequence[str | int | GroupingComponent]
+
     def __init__(
         self,
         id: str | None = None,
