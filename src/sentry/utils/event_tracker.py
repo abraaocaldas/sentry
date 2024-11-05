@@ -4,9 +4,9 @@ from enum import Enum
 
 
 class EventStageStatus(Enum):
-    START = "start"
-    END = "end"
-    REDIS_PUT = "redis_put"
+    START = 1
+    END = 2
+    REDIS_PUT = 3
     """
     i plan on adding the below enums for every step of the transactions pipeline
     ingest_consumer_published
