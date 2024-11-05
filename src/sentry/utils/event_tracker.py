@@ -55,4 +55,5 @@ class EventTracker:
         Records how far an event has made it through the ingestion pipeline.
         """
         if is_tracked:
-            self.logger.info(f"EventTracker recorded event {event_id} - {status.value}")
+            extra = {"event_id": event_id, "status": status}
+            self.logger.info("EventTracker.recorded", extra=extra)
