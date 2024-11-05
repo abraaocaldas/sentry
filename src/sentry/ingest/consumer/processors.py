@@ -22,10 +22,9 @@ from sentry.models.project import Project
 from sentry.signals import event_accepted
 from sentry.tasks.store import preprocess_event, save_event_feedback, save_event_transaction
 from sentry.usage_accountant import record
-from sentry.utils import metrics
+from sentry.utils import event_tracker, metrics
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.dates import to_datetime
-from sentry.utils.event_tracker import EventStageStatus, EventTracker
 from sentry.utils.sdk import set_current_event_project
 from sentry.utils.snuba import RateLimitExceeded
 
@@ -201,13 +200,12 @@ def process_event(
         if no_celery_mode:
             cache_key = None
         else:
-            tracker = EventTracker()
-            if tracker.is_tracked:
+            if event_tracker.is_tracked():
                 data["is_tracked"] = True
             with metrics.timer("ingest_consumer._store_event"):
                 cache_key = processing_store.store(data)
-            tracker.record_event_stage_status(
-                event_id=data["event_id"], status=EventStageStatus.REDIS_PUT
+            event_tracker.record_event_stage_status(
+                event_id=data["event_id"], status=event_tracker.EventStageStatus.REDIS_PUT
             )
             save_attachments(attachments, cache_key)
 
