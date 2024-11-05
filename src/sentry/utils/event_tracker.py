@@ -1,6 +1,7 @@
-from enum import Enum
 import logging
 import random
+from enum import Enum
+
 
 class EventStageStatus(Enum):
     START = "start"
@@ -27,10 +28,12 @@ class EventStageStatus(Enum):
     post_process_finished / the same as redis_deleted
     """
 
+
 class EventTracker:
     """
     Logger-based implementation of EventTrackerBackend. The data will be saved in BigQuery using Google Log Sink
     """
+
     def __init__(self, sample_rate: float = 0.01):
         """
         Args:
@@ -40,10 +43,16 @@ class EventTracker:
         self.logger = logging.getLogger("EventTracker")
         self.sample_rate = sample_rate
 
-    def record_event_stage_status(self, event_id: str, status: EventStageStatus):
+    def is_tracked(self) -> bool:
         if random.random() > self.sample_rate:
             return
+        return True
+
+    def record_event_stage_status(
+        self, event_id: str, status: EventStageStatus, is_tracked: bool = False
+    ):
         """
         Records how far an event has made it through the ingestion pipeline.
         """
-        self.logger.info(f"EventTracker recorded event {event_id} - {status.value}")
+        if is_tracked:
+            self.logger.info(f"EventTracker recorded event {event_id} - {status.value}")

@@ -3,7 +3,6 @@ import logging
 import os
 from collections.abc import Mapping, MutableMapping
 from typing import Any
-from sentry.utils.event_tracker import EventTracker, EventStageStatus
 
 import orjson
 import sentry_sdk
@@ -26,6 +25,7 @@ from sentry.usage_accountant import record
 from sentry.utils import metrics
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.dates import to_datetime
+from sentry.utils.event_tracker import EventStageStatus, EventTracker
 from sentry.utils.sdk import set_current_event_project
 from sentry.utils.snuba import RateLimitExceeded
 
@@ -201,10 +201,14 @@ def process_event(
         if no_celery_mode:
             cache_key = None
         else:
+            tracker = EventTracker()
+            if tracker.is_tracked:
+                data["is_tracked"] = True
             with metrics.timer("ingest_consumer._store_event"):
                 cache_key = processing_store.store(data)
-            tracker = EventTracker()
-            tracker.record_event_stage_status(event_id=data["event_id"], status=EventStageStatus.REDIS_PUT)
+            tracker.record_event_stage_status(
+                event_id=data["event_id"], status=EventStageStatus.REDIS_PUT
+            )
             save_attachments(attachments, cache_key)
 
         try:
