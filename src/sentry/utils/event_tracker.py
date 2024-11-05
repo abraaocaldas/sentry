@@ -43,5 +43,5 @@ def record_event_stage_status(event_id: str, status: EventStageStatus, is_tracke
     Records how far an event has made it through the ingestion pipeline.
     """
     if is_tracked:
-        extra = {"event_id": event_id, "status": status}
+        extra = {"event_id": event_id, "status": status.value}
         logger.info("EventTracker.recorded", extra=extra)
