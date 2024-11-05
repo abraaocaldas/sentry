@@ -1,9 +1,9 @@
 import logging
 import random
-from enum import Enum
+from enum import IntEnum
 
 
-class EventStageStatus(Enum):
+class EventStageStatus(IntEnum):
     START = 1
     END = 2
     REDIS_PUT = 3
@@ -43,5 +43,5 @@ def record_event_stage_status(event_id: str, status: EventStageStatus, is_tracke
     Records how far an event has made it through the ingestion pipeline.
     """
     if is_tracked:
-        extra = {"event_id": event_id, "status": status.value}
+        extra = {"event_id": event_id, "status": status}
         logger.info("EventTracker.recorded", extra=extra)
