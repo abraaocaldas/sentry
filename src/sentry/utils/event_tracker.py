@@ -7,9 +7,6 @@ from sentry.utils.hashlib import md5_text
 class EventStageStatus(IntEnum):
     REDIS_PUT = 1
     """
-    i plan on adding the below enums for every step of the transactions pipeline
-    ingest_consumer_published
-
     redis_put
 
     save_event_started
@@ -32,7 +29,9 @@ logger = logging.getLogger("EventTracker")
 
 
 def is_sampled_to_track(event_id: str, sample_rate: float) -> bool:
-    # Normalize the integer to a float in the range [0, 1)
+    """
+    Normalize the integer to a float in the range [0, 1)
+    """
     hash_float = int(md5_text(event_id).hexdigest(), 16) / (2**128 - 1)
     if hash_float < sample_rate:
         return False
