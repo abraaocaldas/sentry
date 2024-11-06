@@ -6,8 +6,7 @@ import uuid
 import zipfile
 from io import BytesIO
 from typing import Any
-from unittest.mock import Mock, patch
-
+from unittest.mock import Mock, patch, MagicMock
 import orjson
 import pytest
 from arroyo.backends.kafka.consumer import KafkaPayload
@@ -35,6 +34,9 @@ from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_snuba, requires_symbolicator
 from sentry.usage_accountant import accountant
 from sentry.utils.eventuser import EventUser
+from sentry.utils import event_tracker
+from sentry.utils.event_tracker import EventStageStatus, is_sampled_to_track
+
 from sentry.utils.json import loads
 
 pytestmark = [requires_snuba]
@@ -160,17 +162,12 @@ def test_transactions_spawn_save_event_transaction(
         project_id=project_id,
     )
 
-from unittest.mock import patch
-from sentry.utils import event_tracker
-
-@patch('event_tracker.is_tracked', return_value=True)
+@patch("sentry.utils.event_tracker.is_sampled_to_track", return_value=True)
 @django_db_all
-def test_transactions_tracks_save_event_transaction(
-    default_project,
-    task_runner,
-    preprocess_event,
-    save_event_transaction,
+def test_transactions_save_event_transaction_is_tracked(
+    default_project
 ):
+
     project_id = default_project.id
     now = datetime.datetime.now()
     event = {
@@ -192,9 +189,10 @@ def test_transactions_tracks_save_event_transaction(
     payload = get_normalized_event(event, default_project)
     event_id = payload["event_id"]
     start_time = time.time() - 3600
+    event_tracker.record_sampled_event_stage_status = MagicMock()
     process_event(
-        ConsumerType.Events,
-        {
+        ConsumerType.Transactions,
+        message={
             "payload": orjson.dumps(payload).decode(),
             "start_time": start_time,
             "event_id": event_id,
@@ -203,7 +201,13 @@ def test_transactions_tracks_save_event_transaction(
         },
         project=default_project,
     )
-    assert save_event_transaction.delay.call_args[1]["is_tracked"] == True
+    event_tracker.record_sampled_event_stage_status.assert_called_with(
+        payload["event_id"],
+        EventStageStatus.REDIS_PUT,
+        0.01
+    )
+    # assert .store.call_args["
+    # "] == True
 
     # assert not len(preprocess_event)
     # assert save_event_transaction.delay.call_args[0] == ()
