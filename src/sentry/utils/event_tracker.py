@@ -5,9 +5,7 @@ from sentry.utils.hashlib import md5_text
 
 
 class EventStageStatus(IntEnum):
-    START = 1
-    END = 2
-    REDIS_PUT = 3
+    REDIS_PUT = 1
     """
     i plan on adding the below enums for every step of the transactions pipeline
     ingest_consumer_published
