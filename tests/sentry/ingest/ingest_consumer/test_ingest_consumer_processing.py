@@ -6,7 +6,8 @@ import uuid
 import zipfile
 from io import BytesIO
 from typing import Any
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import MagicMock, Mock, patch
+
 import orjson
 import pytest
 from arroyo.backends.kafka.consumer import KafkaPayload
@@ -33,10 +34,8 @@ from sentry.testutils.helpers.features import Feature
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_snuba, requires_symbolicator
 from sentry.usage_accountant import accountant
-from sentry.utils.eventuser import EventUser
-from sentry.utils import event_tracker
 from sentry.utils.event_tracker import EventStageStatus, is_sampled_to_track
-
+from sentry.utils.eventuser import EventUser
 from sentry.utils.json import loads
 
 pytestmark = [requires_snuba]
@@ -162,11 +161,9 @@ def test_transactions_spawn_save_event_transaction(
         project_id=project_id,
     )
 
-@patch("sentry.utils.event_tracker.is_sampled_to_track", return_value=True)
+@patch("sentry.ingest.consumer.processors.is_sampled_to_track", return_value=True)
 @django_db_all
-def test_transactions_save_event_transaction_is_tracked(
-    default_project
-):
+def test_transactions_save_event_transaction_is_tracked(default_project, mock_is_sampled_to_track):
 
     project_id = default_project.id
     now = datetime.datetime.now()
@@ -189,7 +186,7 @@ def test_transactions_save_event_transaction_is_tracked(
     payload = get_normalized_event(event, default_project)
     event_id = payload["event_id"]
     start_time = time.time() - 3600
-    event_tracker.record_sampled_event_stage_status = MagicMock()
+    record_sampled_event_stage_status = MagicMock()
     process_event(
         ConsumerType.Transactions,
         message={
@@ -201,10 +198,8 @@ def test_transactions_save_event_transaction_is_tracked(
         },
         project=default_project,
     )
-    event_tracker.record_sampled_event_stage_status.assert_called_with(
-        payload["event_id"],
-        EventStageStatus.REDIS_PUT,
-        0.01
+    record_sampled_event_stage_status.assert_called_with(
+        payload["event_id"], EventStageStatus.REDIS_PUT, 0.01
     )
     # assert .store.call_args["
     # "] == True

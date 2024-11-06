@@ -25,9 +25,9 @@ from sentry.usage_accountant import record
 from sentry.utils import event_tracker, metrics
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.dates import to_datetime
+from sentry.utils.event_tracker import EventStageStatus, is_sampled_to_track
 from sentry.utils.sdk import set_current_event_project
 from sentry.utils.snuba import RateLimitExceeded
-from sentry.utils.event_tracker import EventStageStatus, is_sampled_to_track
 
 logger = logging.getLogger(__name__)
 
