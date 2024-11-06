@@ -6,7 +6,7 @@ import uuid
 import zipfile
 from io import BytesIO
 from typing import Any
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock, patch
 
 import orjson
 import pytest
@@ -34,7 +34,6 @@ from sentry.testutils.helpers.features import Feature
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_snuba, requires_symbolicator
 from sentry.usage_accountant import accountant
-from sentry.utils.event_tracker import EventStageStatus, is_sampled_to_track
 from sentry.utils.eventuser import EventUser
 from sentry.utils.json import loads
 
@@ -161,58 +160,86 @@ def test_transactions_spawn_save_event_transaction(
         project_id=project_id,
     )
 
-@patch("sentry.ingest.consumer.processors.is_sampled_to_track", return_value=True)
+
 @django_db_all
-def test_transactions_save_event_transaction_is_tracked(default_project, mock_is_sampled_to_track):
+def test_transactions_save_event_transaction_is_tracked(default_project):
+    with patch("sentry.utils.event_tracker.is_sampled_to_track", return_value=True):
 
-    project_id = default_project.id
-    now = datetime.datetime.now()
-    event = {
-        "type": "transaction",
-        "timestamp": now.isoformat(),
-        "start_timestamp": now.isoformat(),
-        "spans": [],
-        "contexts": {
-            "trace": {
-                "parent_span_id": "8988cec7cc0779c1",
-                "type": "trace",
-                "op": "foobar",
-                "trace_id": "a7d67cf796774551a95be6543cacd459",
-                "span_id": "babaae0d4b7512d9",
-                "status": "ok",
-            }
-        },
-    }
-    payload = get_normalized_event(event, default_project)
-    event_id = payload["event_id"]
-    start_time = time.time() - 3600
-    record_sampled_event_stage_status = MagicMock()
-    process_event(
-        ConsumerType.Transactions,
-        message={
-            "payload": orjson.dumps(payload).decode(),
-            "start_time": start_time,
-            "event_id": event_id,
-            "project_id": project_id,
-            "remote_addr": "127.0.0.1",
-        },
-        project=default_project,
-    )
-    record_sampled_event_stage_status.assert_called_with(
-        payload["event_id"], EventStageStatus.REDIS_PUT, 0.01
-    )
-    # assert .store.call_args["
-    # "] == True
+        project_id = default_project.id
+        now = datetime.datetime.now()
+        event = {
+            "type": "transaction",
+            "timestamp": now.isoformat(),
+            "start_timestamp": now.isoformat(),
+            "spans": [],
+            "contexts": {
+                "trace": {
+                    "parent_span_id": "8988cec7cc0779c1",
+                    "type": "trace",
+                    "op": "foobar",
+                    "trace_id": "a7d67cf796774551a95be6543cacd459",
+                    "span_id": "babaae0d4b7512d9",
+                    "status": "ok",
+                }
+            },
+        }
+        payload = get_normalized_event(event, default_project)
+        event_id = payload["event_id"]
+        start_time = time.time() - 3600
+        with patch("sentry.utils.event_tracker._do_record") as mock_record:
+            process_event(
+                ConsumerType.Transactions,
+                message={
+                    "payload": orjson.dumps(payload).decode(),
+                    "start_time": start_time,
+                    "event_id": event_id,
+                    "project_id": project_id,
+                    "remote_addr": "127.0.0.1",
+                },
+                project=default_project,
+            )
+            mock_record.assert_called_once()
 
-    # assert not len(preprocess_event)
-    # assert save_event_transaction.delay.call_args[0] == ()
-    # assert save_event_transaction.delay.call_args[1] == dict(
-    #     cache_key=f"e:{event_id}:{project_id}",
-    #     data=None,
-    #     start_time=start_time,
-    #     event_id=event_id,
-    #     project_id=project_id,
-    # )
+
+@django_db_all
+def test_transactions_save_event_transaction_is_not_tracked(default_project):
+    with patch("sentry.utils.event_tracker.is_sampled_to_track", return_value=False):
+
+        project_id = default_project.id
+        now = datetime.datetime.now()
+        event = {
+            "type": "transaction",
+            "timestamp": now.isoformat(),
+            "start_timestamp": now.isoformat(),
+            "spans": [],
+            "contexts": {
+                "trace": {
+                    "parent_span_id": "8988cec7cc0779c1",
+                    "type": "trace",
+                    "op": "foobar",
+                    "trace_id": "a7d67cf796774551a95be6543cacd459",
+                    "span_id": "babaae0d4b7512d9",
+                    "status": "ok",
+                }
+            },
+        }
+        payload = get_normalized_event(event, default_project)
+        event_id = payload["event_id"]
+        start_time = time.time() - 3600
+        with patch("sentry.utils.event_tracker._do_record") as mock_record:
+            process_event(
+                ConsumerType.Transactions,
+                message={
+                    "payload": orjson.dumps(payload).decode(),
+                    "start_time": start_time,
+                    "event_id": event_id,
+                    "project_id": project_id,
+                    "remote_addr": "127.0.0.1",
+                },
+                project=default_project,
+            )
+            mock_record.assert_not_called()
+
 
 @django_db_all
 def test_accountant_transaction(default_project):

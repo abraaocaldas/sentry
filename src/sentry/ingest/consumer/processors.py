@@ -22,10 +22,10 @@ from sentry.models.project import Project
 from sentry.signals import event_accepted
 from sentry.tasks.store import preprocess_event, save_event_feedback, save_event_transaction
 from sentry.usage_accountant import record
-from sentry.utils import event_tracker, metrics
+from sentry.utils import metrics
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.dates import to_datetime
-from sentry.utils.event_tracker import EventStageStatus, is_sampled_to_track
+from sentry.utils.event_tracker import EventStageStatus, record_sampled_event_stage_status
 from sentry.utils.sdk import set_current_event_project
 from sentry.utils.snuba import RateLimitExceeded
 
@@ -203,11 +203,8 @@ def process_event(
         else:
             with metrics.timer("ingest_consumer._store_event"):
                 cache_key = processing_store.store(data)
-            if event_tracker.is_sampled_to_track(data["event_id"]):
-                event_tracker.record_sampled_event_stage_status(
-                    event_id=data["event_id"], status=EventStageStatus.REDIS_PUT
-                )
-            print("should be called")
+            record_sampled_event_stage_status(data["event_id"], EventStageStatus.REDIS_PUT)
+
             save_attachments(attachments, cache_key)
 
         try:
