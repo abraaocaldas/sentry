@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
-
 import {removeAuthenticator} from 'sentry/actionCreators/account';
 import {
   addErrorMessage,
@@ -11,8 +11,9 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {resendMemberInvite, updateMember} from 'sentry/actionCreators/members';
 import {Button} from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
-import {DateTime} from 'sentry/components/dateTime';
+import DateTime from 'sentry/components/dateTime';
 import NotFound from 'sentry/components/errors/notFound';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import HookOrDefault from 'sentry/components/hookOrDefault';
@@ -21,88 +22,94 @@ import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
+import TextCopyInput from 'sentry/components/textCopyInput';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconRefresh} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+
+
+
+
+
+
+
+          Expand Down
+
+
+
+
+
+          Expand Up
+
+    @@ -288,7 +287,7 @@ class OrganizationMemberDetail extends DeprecatedAsyncView<Props, State> {
+
 import {space} from 'sentry/styles/space';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import type {Member, Organization} from 'sentry/types/organization';
+import {Member, Organization} from 'sentry/types';
 import isMemberDisabledFromLimit from 'sentry/utils/isMemberDisabledFromLimit';
 import Teams from 'sentry/utils/teams';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
-import type {AsyncViewState} from 'sentry/views/deprecatedAsyncView';
-import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
+import DeprecatedAsyncView, {AsyncViewState} from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TeamSelectForMember from 'sentry/views/settings/components/teamSelect/teamSelectForMember';
-
 import OrganizationRoleSelect from './inviteMember/orgRoleSelect';
-
 const MULTIPLE_ORGS = t('Cannot be reset since user is in more than one organization');
 const NOT_ENROLLED = t('Not enrolled in two-factor authentication');
 const NO_PERMISSION = t('You do not have permission to perform this action');
 const TWO_FACTOR_REQUIRED = t(
   'Cannot be reset since two-factor is required for this organization'
 );
-
 type RouteParams = {
   memberId: string;
 };
-
 interface Props extends RouteComponentProps<RouteParams, {}> {
   organization: Organization;
 }
-
 interface State extends AsyncViewState {
+  groupOrgRoles: Member['groupOrgRoles']; // Form state
   member: Member | null;
   orgRole: Member['orgRole']; // Form state
   teamRoles: Member['teamRoles']; // Form state
 }
-
 const DisabledMemberTooltip = HookOrDefault({
   hookName: 'component:disabled-member-tooltip',
   defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
 });
-
 class OrganizationMemberDetail extends DeprecatedAsyncView<Props, State> {
   get hasTeamRoles() {
     const {organization} = this.props;
     return organization.features.includes('team-roles');
   }
-
   getDefaultState(): State {
     return {
       ...super.getDefaultState(),
+      groupOrgRoles: [],
       member: null,
       orgRole: '',
       teamRoles: [],
     };
   }
-
   getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const {organization, params} = this.props;
     return [
       ['member', `/organizations/${organization.slug}/members/${params.memberId}/`],
     ];
   }
-
   onRequestSuccess({data, stateKey}: {data: Member; stateKey: string}) {
     if (stateKey === 'member') {
-      const {orgRole, teamRoles} = data;
+      const {orgRole, teamRoles, groupOrgRoles} = data;
       this.setState({
         orgRole,
         teamRoles,
+        groupOrgRoles,
       });
     }
   }
-
   handleSave = async () => {
     const {organization, params} = this.props;
     const {orgRole, teamRoles} = this.state;
-
     addLoadingMessage(t('Saving...'));
     this.setState({busy: true});
-
     try {
       const updatedMember = await updateMember(this.api, {
         orgId: organization.slug,
@@ -117,47 +124,38 @@ class OrganizationMemberDetail extends DeprecatedAsyncView<Props, State> {
       });
       addSuccessMessage(t('Saved'));
     } catch (resp) {
-      const errorMessage = resp?.responseJSON?.detail || t('Could not save...');
+      const errorMessage =
+        (resp && resp.responseJSON && resp.responseJSON.detail) || t('Could not save...');
       this.setState({busy: false});
       addErrorMessage(errorMessage);
     }
   };
-
   handleInvite = async (regenerate: boolean) => {
     const {organization, params} = this.props;
-
     addLoadingMessage(t('Sending invite...'));
-
     this.setState({busy: true});
-
     try {
       const data = await resendMemberInvite(this.api, {
         orgId: organization.slug,
         memberId: params.memberId,
         regenerate,
       });
-
       addSuccessMessage(t('Sent invite!'));
-
       if (regenerate) {
         this.setState(state => ({member: {...state.member, ...data}}));
       }
     } catch (_err) {
       addErrorMessage(t('Could not send invite'));
     }
-
     this.setState({busy: false});
   };
-
   handle2faReset = async () => {
     const {organization, router} = this.props;
     const {user} = this.state.member!;
-
     const requests =
       user?.authenticators?.map(auth =>
         removeAuthenticator(this.api, user.id, auth.id)
       ) ?? [];
-
     try {
       await Promise.all(requests);
       router.push(normalizeUrl(`/settings/${organization.slug}/members/`));
@@ -167,61 +165,49 @@ class OrganizationMemberDetail extends DeprecatedAsyncView<Props, State> {
       Sentry.captureException(err);
     }
   };
-
   onAddTeam = (teamSlug: string) => {
     const teamRoles = [...this.state.teamRoles];
     const i = teamRoles.findIndex(r => r.teamSlug === teamSlug);
     if (i !== -1) {
       return;
     }
-
     teamRoles.push({teamSlug, role: null});
     this.setState({teamRoles});
   };
-
   onRemoveTeam = (teamSlug: string) => {
     const teamRoles = this.state.teamRoles.filter(r => r.teamSlug !== teamSlug);
     this.setState({teamRoles});
   };
-
   onChangeOrgRole = orgRole => this.setState({orgRole});
-
   onChangeTeamRole = (teamSlug: string, role: string) => {
     if (!this.hasTeamRoles) {
       return;
     }
-
     const teamRoles = [...this.state.teamRoles];
     const i = teamRoles.findIndex(r => r.teamSlug === teamSlug);
     if (i === -1) {
       return;
     }
-
     teamRoles[i] = {...teamRoles[i], role};
     this.setState({teamRoles});
   };
-
   showResetButton = () => {
     const {organization} = this.props;
     const {member} = this.state;
     const {user} = member!;
-
     if (!user || !user.authenticators || organization.require2FA) {
       return false;
     }
     const hasAuth = user.authenticators.length >= 1;
     return hasAuth && user.canReset2fa;
   };
-
   getTooltip = (): string => {
     const {organization} = this.props;
     const {member} = this.state;
     const {user} = member!;
-
     if (!user) {
       return '';
     }
-
     if (!user.authenticators) {
       return NO_PERMISSION;
     }
@@ -234,27 +220,21 @@ class OrganizationMemberDetail extends DeprecatedAsyncView<Props, State> {
     if (organization.require2FA) {
       return TWO_FACTOR_REQUIRED;
     }
-
     return '';
   };
-
   get memberDeactivated() {
     return isMemberDisabledFromLimit(this.state.member);
   }
-
   get hasFormChanged() {
     const {member, orgRole, teamRoles} = this.state;
     if (!member) {
       return false;
     }
-
     if (orgRole !== member.orgRole || !isEqual(teamRoles, member.teamRoles)) {
       return true;
     }
-
     return false;
   }
-
   renderMemberStatus(member: Member) {
     if (this.memberDeactivated) {
       return (
@@ -271,24 +251,35 @@ class OrganizationMemberDetail extends DeprecatedAsyncView<Props, State> {
     }
     return t('Active');
   }
-
   renderBody() {
     const {organization} = this.props;
     const {member, orgRole, teamRoles} = this.state;
-
     if (!member) {
       return <NotFound />;
     }
-
     const {access, orgRoleList} = organization;
     const canEdit = access.includes('org:write') && !this.memberDeactivated;
-    const isPartnershipUser = member.flags['partnership:restricted'] === true;
 
-    const {email, expired, pending} = member;
+    const {email, expired, pending, invite_link: inviteLink} = member;
     const canResend = !expired;
     const showAuth = !pending;
 
-    const showResendButton = (member.pending || member.expired) && canResend;
+
+
+
+
+
+
+
+          Expand Down
+
+
+
+
+
+          Expand Up
+
+    @@ -330,35 +329,19 @@ class OrganizationMemberDetail extends DeprecatedAsyncView<Props, State> {
 
     return (
       <Fragment>
@@ -300,25 +291,8 @@ class OrganizationMemberDetail extends DeprecatedAsyncView<Props, State> {
             </Fragment>
           }
         />
-
         <Panel>
-          <PanelHeader hasButtons={showResendButton}>
-            {t('Basics')}
-
-            {showResendButton && (
-              <Button
-                data-test-id="resend-invite"
-                size="xs"
-                priority="primary"
-                icon={<IconRefresh />}
-                title={t('Generate a new invite link and send a new email.')}
-                onClick={() => this.handleInvite(true)}
-              >
-                {t('Resend Invite')}
-              </Button>
-            )}
-          </PanelHeader>
-
+          <PanelHeader>{t('Basics')}</PanelHeader>
           <PanelBody>
             <PanelItem>
               <Details>
@@ -342,9 +316,59 @@ class OrganizationMemberDetail extends DeprecatedAsyncView<Props, State> {
                 </div>
               </Details>
             </PanelItem>
+            <PanelItem>
+              {inviteLink && (
+                <InviteSection>
+                  <InviteField>
+                    <DetailLabel>{t('Invite Link')}</DetailLabel>
+                    <TextCopyInput>{inviteLink}</TextCopyInput>
+                    <p className="help-block">
+                      {t(
+                        'This invite link can be used by anyone who knows it. Keep it secure!'
+                      )}
+                    </p>
+                  </InviteField>
+                  <ButtonBar gap={1}>
+                    {canResend && (
+                      <Button
+                        data-test-id="resend-invite"
+                        onClick={() => this.handleInvite(false)}
+                      >
+                        {t('Resend Invite')}
+                      </Button>
+                    )}
+                    <Button
+                      onClick={() => this.handleInvite(true)}
+                      title={t(
+                        'Generate New Invite. This will invalidate the previous invite link!'
+                      )}
+                      priority="danger"
+                      aria-label={t('Generate New Invite')}
+                      icon={<IconRefresh size="sm" />}
+                    />
+                  </ButtonBar>
+                </InviteSection>
+              )}
+
+
+
+
+
+
+
+          Expand Down
+
+
+
+
+
+          Expand Up
+
+    @@ -466,10 +449,6 @@ const DetailLabel = styled('div')`
+
+            </PanelItem>
           </PanelBody>
         </Panel>
-
         {showAuth && (
           <Panel>
             <PanelHeader>{t('Authentication')}</PanelHeader>
@@ -375,21 +399,14 @@ class OrganizationMemberDetail extends DeprecatedAsyncView<Props, State> {
             </PanelBody>
           </Panel>
         )}
-
         <OrganizationRoleSelect
           enforceAllowed={false}
           enforceRetired={this.hasTeamRoles}
-          disabled={!canEdit || isPartnershipUser}
+          disabled={!canEdit}
           roleList={orgRoleList}
           roleSelected={orgRole}
           setSelected={this.onChangeOrgRole}
-          helpText={
-            isPartnershipUser
-              ? t('You cannot make changes to this partner-provisioned user.')
-              : undefined
-          }
         />
-
         <Teams slugs={member.teams}>
           {({initiallyLoaded}) => (
             <Fragment>
@@ -407,7 +424,6 @@ class OrganizationMemberDetail extends DeprecatedAsyncView<Props, State> {
             </Fragment>
           )}
         </Teams>
-
         <Footer>
           <Button
             priority="primary"
@@ -422,34 +438,49 @@ class OrganizationMemberDetail extends DeprecatedAsyncView<Props, State> {
     );
   }
 }
-
 export default withOrganization(OrganizationMemberDetail);
-
 const ExtraHeaderText = styled('div')`
   color: ${p => p.theme.gray300};
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: normal;
   font-size: ${p => p.theme.fontSizeLarge};
 `;
-
 const Details = styled('div')`
   display: grid;
   grid-auto-flow: column;
   grid-template-columns: 2fr 1fr 1fr;
   gap: ${space(2)};
   width: 100%;
-
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     grid-auto-flow: row;
     grid-template-columns: auto;
   }
 `;
-
 const DetailLabel = styled('div')`
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: bold;
   margin-bottom: ${space(0.5)};
   color: ${p => p.theme.textColor};
 `;
 
+const InviteField = styled('div')`
+  flex-grow: 1;
+`;
+
+const InviteSection = styled('div')`
+  flex-grow: 1;
+  display: flex;
+
+
+
+
+
+
+
+          Expand Down
+
+
+
+  gap: ${space(1)};
+`;
 const Footer = styled('div')`
   display: flex;
   justify-content: flex-end;
